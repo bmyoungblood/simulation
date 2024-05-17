@@ -103,17 +103,86 @@ class Agent:
     
 ## Create a World Class
 class World: 
-    def __init__(self, ):
-    def build_grid(self): 
-    def build_agents(self):
+    def __init__(self, params):
+        assert(params['world_size'][0]*params['world_size'][1] > params['num_agents']), 'Grid too small'
+        self.params = params
+        self.reports = {}
+        
+        self.grid = self.build_grid(params['world_size'])
+        self.agents = self.build_agents(params['num_agents'], params['same_pref'])
+        
+        self.init_world()
+        
+    def build_grid(self, world_size):
+        locations= [(i,j) for i in range(world_size[0]) for j in range(world_size[1])]
+        return {l:None for l in locations}
+    
+    def build_agents(self, num_agents, same_pref):
+        def kind_picker(i):
+            if i < round(num_agents/2):
+                return 'red'
+            else:
+                return 'blue'
+            
+        agents= [Agent(self, kind_picker, same_pref) for i in range(num_agents)]
+        random.shuffle(agents)
+        return agents
+        
     def init_world(self):
+        for agent in self.agents:
+            loc= self.find_vacant()
+            self.grid[loc] = agent
+            agent.location = loc
+            
+        assert(all([agent.location is not None for agent in self.agents])), "Agents are homeless!"
+        assert(sum([occupant is not None for occupant in self.grid.values()])== self.params['num_agents']), "Mismatch!"
+        
+        self.reports['integration']=[]
+        
     def find_vacant(self):
+        empties=[loc for loc, occupant in self.grid.items() if occupant is None]
+        if return_all:
+            return empties
+        else: 
+            choice_index = random.choice(range(len(empties)))
+            return empties[choice_index]
+        
     def report_integration(self):
-    def report(self)L:
+        diff_neighbors = []
+        for agent in self.agents:
+            diff_neighbors.append(sum(
+                [not a for a in agent.satisfied(neighbor_check=True)]
+                        ))
+        self.reports['integration'].append(round(mean(diff_neigbors), 2))
+
     def run(self):
+        log_of_happy= []
+        log_of_moved= []
+        log_of_stay= []
+        
+        self.report_integration()
+        log_of_happy.append(sum([a.satisfied() for a in self.agents]))
+        log_of_moved.append(0)
+        log_of_stay.append(0)
+        
+        for iteration in range(self.params['max_iter']):
+            random.shuffle(self.agents)
+            move_results = [agent.move() for agent in self.agents]
+            self.report_integration()
+            
+            num_happy_at_start = sum([r==0 for r in move_results])
+            num_moved = sum([r==1 for r in move_results])
+            num_stayed_unhappy= sum([r==2 for r in move_results])
+            
+            log_of_happy.append(num_happy_at_start)
+            log_of_moved.append(num_moved)
+            log_of_stay.append(num_stayed_unhappy)
         
 
 ## Initialize
 
-## Create Loop 
+world = World(params)
+world.run()
+
+ 
 
